@@ -664,13 +664,14 @@ static void randomize_security_cookie(pe_image* img, IMAGE_NT_HEADERS* nt_header
         if (config->SecurityCookie == 0)
             return;
 
-        cookie = (uint64_t*)((uint8_t*)img->pub.Data + config->SecurityCookie - (uint8_t*)img->va);
+        cookie = (uint64_t*)((uint8_t*)img->pub.Data +
+                            (config->SecurityCookie - (uintptr_t)img->va));
 
-        *(uint32_t*)cookie = tinymt32_generate_uint32(&mt);
-        *((uint32_t*)cookie + 1) = tinymt32_generate_uint32(&mt);
+        uint64_t value = tinymt32_generate_uint32(&mt);
+        value |= (uint64_t)tinymt32_generate_uint32(&mt) << 32;
 
         // Windows 8 wants the top 16 bits to be clear
-        *cookie &= 0xffffffffffff;
+        *cookie = value & 0xffffffffffff;
     } else {
         uint32_t* cookie;
         IMAGE_LOAD_CONFIG_DIRECTORY32* config;
@@ -694,7 +695,8 @@ static void randomize_security_cookie(pe_image* img, IMAGE_NT_HEADERS* nt_header
         if (config->SecurityCookie == 0)
             return;
 
-        cookie = (uint32_t*)((uint8_t*)img->pub.Data + config->SecurityCookie - (uint8_t*)img->va);
+        cookie = (uint32_t*)((uint8_t*)img->pub.Data +
+                            (config->SecurityCookie - (uintptr_t)img->va));
         *cookie = tinymt32_generate_uint32(&mt);
 
         // XP wants the top 16 bits to be clear

@@ -637,6 +637,20 @@ int _setjmp(jmp_buf, void*) {
     return 0;
 }
 
+#if defined(__x86_64__) && defined(__MINGW32__)
+extern "C"
+int __stdio_common_vsprintf(unsigned long long, char*, size_t,
+                           const char*, _locale_t, va_list) {
+    abort();
+}
+
+extern "C" {
+    int (*__imp__setjmp)(jmp_buf, void*) = _setjmp;
+    int (*__imp___stdio_common_vsprintf)(unsigned long long, char*, size_t,
+                                       const char*, _locale_t, va_list) = __stdio_common_vsprintf;
+}
+#endif
+
 extern "C"
 int _setjmp3(jmp_buf, void*) {
     return 0;

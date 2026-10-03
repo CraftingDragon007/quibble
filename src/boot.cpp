@@ -3334,7 +3334,7 @@ static EFI_STATUS boot(EFI_HANDLE image_handle, EFI_BOOT_SERVICES* bs, EFI_FILE_
     uint32_t version_ms, version_ls;
     uint16_t version;
     uint16_t build, revision;
-    uintptr_t* loader_pages_spanned;
+    uintptr_t* loader_pages_spanned = nullptr;
     unsigned int pathlen, pathwlen;
     wchar_t* pathw;
     KPCR* pcrva = NULL;
@@ -4372,13 +4372,15 @@ static EFI_STATUS boot(EFI_HANDLE image_handle, EFI_BOOT_SERVICES* bs, EFI_FILE_
     print_string("Calling KiSystemStartup" ELLIPSIS "\n");
 
     __asm__ __volatile__ (
-        "mov %0, %%rsp\n\t"
-        "lea %1, %%rcx\n\t"
-        "call *%2\n\t"
+        "mov %%rax, %%rsp\n\t"
+        "sub $32, %%rsp\n\t"
+        "call *%%rdx\n\t"
+        "ud2\n\t"
         :
-        : "m" (tss->Rsp0), "m" (store->loader_block), "m" (KiSystemStartup)
-        : "rcx"
+        : "a" (tss->Rsp0), "c" (&store->loader_block), "d" (KiSystemStartup)
+        : "memory"
     );
+    __builtin_unreachable();
 #else
     call_startup(tss->Rsp0, &store->loader_block, KiSystemStartup);
 #endif
